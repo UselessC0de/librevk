@@ -248,7 +248,10 @@ class Post(object):
     # returns a name of post's author
     @property
     def post_author(self):
-        return self.__post_author
+        if self.__post_author is not None and len(str(self.__post_author)) > 0:
+            return self.__post_author
+        else:
+            return '\"unknown\"'
 
     # returns the id of a community from which post was grabbed
     @property
@@ -432,22 +435,29 @@ class Post(object):
                 tries += 1
                 sleep(1)
         if soup is not None:
-            url = f"https://api.telegram.org/bot{config['token']}/sendVideo"
-            duration = soup.find('span', class_="_time_duration")
-            duration = [int(el) for el in duration.split(':')]
-            duration.reverse()
-            if duration[1] > 2:
+            block, tmp_block, tmp_start, tmp_end = str(soup), str(soup), 0, 0
+            for m in re.finditer('","duration":', tmp_block):
+                tmp_start = m.end()
+                break
+            tmp_block = tmp_block[tmp_start:]
+            for m in re.finditer(',"t"', tmp_block):
+                tmp_end = m.start()
+            tmp_block = tmp_block[:tmp_end]
+            duration = 0
+            if tmp_block != '':
+                duration = int(tmp_block)
+            if duration > 180 or duration == 0:
                 return None
-            block = str(soup)
             for quality in ((480, 720), (360, 480), (240, 360)):
                 start, end = 0, 0
+                url = f"https://api.telegram.org/bot{config['token']}/sendVideo"
                 for m in re.finditer('\"url{}\":\"'.format(quality[0]), block):
                     start = m.end()
                     break
-                for m in re.finditer('\",\"url720\":\"'.format(quality[1]), block):
+                for m in re.finditer('\",\"url{}\":\"'.format(quality[1]), block):
                     end = m.start()
                     break
-                if not start and not end and quality[0] == 240:
+                if (not start or not end) and quality[0] == 240:
                     for m in re.finditer('\"><BaseURL>', block):
                         start = m.end()
                         break
@@ -456,7 +466,7 @@ class Post(object):
                         break
                     if not start and not end:
                         return None
-                elif not start and not end and quality[0] > 240:
+                elif (not start or not end) and quality[0] > 240:
                     continue
                 link = block[start:end]
                 link = link.replace('\\/', '/')

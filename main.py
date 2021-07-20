@@ -99,8 +99,16 @@ class UserAgent(object):
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:77.0) Gecko/20100101 Firefox/77.0',
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 '
             'Safari/537.36',
+            'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.1.19) Gecko/20081216 Ubuntu/8.04 (hardy) Firefox/2.0.0.19',
+            'Mozilla/5.0 (X11; U; Linux i586; en-US; rv:1.7.3) Gecko/20050924 Epiphany/1.4.4 (Ubuntu)',
+            'Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en-US) AppleWebKit/125.4 (KHTML, like Gecko, Safari) '
+            'OmniWeb/v563.15',
+            'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0; en) Opera 8.0',
+            'Mozilla/5.0 (X11; U; FreeBSD; i386; en-US; rv:1.7) Gecko',
+            'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.1) Gecko/2008070208 Firefox/3.0.1',
+            'Mozilla/5.0 (X11; U; Linux; i686; en-US; rv:1.6) Gecko Debian/1.6-7'
         ]
-        return user_agent_list[np.random.randint(0, 4, dtype='int8')]
+        return user_agent_list[np.random.randint(0, 12, dtype='int8')]
 
 
 # a big class object of which provides a possibility of comfortable work with wall of parsed vk community page
@@ -122,16 +130,19 @@ class Post(object):
                 'a',
                 class_="author"
             ).text
-
+        else:
+            self.__post_author = 'unknown'
         self.find_id()
 
     # here we send any content of vk publication (images, text, author name, events, etc.)
     def post_content(self):
         if isinstance(self.__main_block, Tag):
-            client.send_message(
-                self.__user_id,
-                self.__post_author
-            )
+            if self.__post_author is not None and \
+            (isinstance(self.__post_author, Tag) or isinstance(self.__post_author, str)):
+                client.send_message(
+                    self.__user_id,
+                    self.__post_author
+                )
             try:
                 self.__photos_block = self.__main_block.find(
                     'div',
@@ -503,6 +514,7 @@ def get_post_view_hash():
         global_post_view_hash = str(block.get("post_view_hash"))
     else:
         global_post_view_hash = ''
+    print(global_post_view_hash)
     return global_post_view_hash
 
 
@@ -783,17 +795,21 @@ def schedule_checker():
 
 # adds a thread that updates walls of all users
 def run_update_users_walls():
-    threading.Thread(target=update_users_walls).start()
+    thread = threading.Thread(target=update_users_walls)
+    thread.start()
+    thread.join()
 
 
 # updates global post view hash in its own thread
 def run_get_post_view_hash():
-    threading.Thread(target=update_users_walls).start()
+    thread = threading.Thread(target=get_post_view_hash)
+    thread.start()
+    thread.join()
 
 
 run_update_users_walls()
 schedule.every(15).minutes.do(run_get_post_view_hash)
-schedule.every(6).minutes.do(run_update_users_walls)
+schedule.every(7).minutes.do(run_update_users_walls)
 
 # adds schedule checker to a special thread
 threading.Thread(target=schedule_checker).start()

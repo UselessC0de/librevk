@@ -347,12 +347,15 @@ class Post(object):
                                 temp_iter_links = ttils
                             iter_links = ' '.join(temp_iter_links)
                     iter_links = len(iter_links.split(' '))
-                    if iter_links == 1:
-                        iter_links = ' ' + post_links['links'][counter] + ' '
-                        counter += 1
+                    if counter < len(post_links['links']):
+                        if iter_links == 1:
+                            iter_links = ' ' + post_links['links'][counter] + ' '
+                            counter += 1
+                        else:
+                            iter_links = '\n' + ',\n'.join(post_links['links'][counter:counter + iter_links]) + ',\n'
+                            counter += len(iter_links)
                     else:
-                        iter_links = '\n' + ',\n'.join(post_links['links'][counter:counter + iter_links]) + ',\n'
-                        counter += len(iter_links)
+                        iter_links = ''
                     if start > 0:
                         small_link = i[1][:start]
                     else:
